@@ -16,10 +16,22 @@ create or replace package utils_pkg is
                        ,p_p2 coordinate) return number;
 	function dist_between_points(p_a coordinate
                               ,p_b coordinate) return number;
+	function dist_between_points(p_x1 number
+                              ,p_y1 number
+                              ,p_x2 number
+                              ,p_y2 number) return number; 
 end utils_pkg;
 /
 create or replace package body utils_pkg is
-
+ --Расчет расстояния между точками
+  function dist_between_points(p_x1 number
+                              ,p_y1 number
+                              ,p_x2 number
+                              ,p_y2 number) return number is
+  begin
+    return(sqrt(power(p_x2 - p_x1, 2) + power(p_y2 - p_y1, 2)));
+  end;
+  
   --Расчет расстояния между точками
   function dist_between_points(p_a coordinate
                               ,p_b coordinate) return number is
