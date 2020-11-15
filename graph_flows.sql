@@ -109,5 +109,5 @@ flows as
     from get_point_cross t1
     join get_point_cross t2 on t2.from_street = t1.to_street and t1.from_street = t2.to_street
     )
-select from_street, to_street, p1x, p1y, p2x, p2y, solver_pkg.dist_between_points(p1x, p1y, p2x, p2y) cost_flow
+select from_street, to_street, p1x, p1y, p2x, p2y, utils_pkg.dist_between_points(p1x, p1y, p2x, p2y) cost_flow
   from flows;
