@@ -14,10 +14,18 @@ create or replace package utils_pkg is
     function dist_to_line(p_p  coordinate
                        ,p_p1 coordinate
                        ,p_p2 coordinate) return number;
+	function dist_between_points(p_a coordinate
+                              ,p_b coordinate) return number;
 end utils_pkg;
 /
 create or replace package body utils_pkg is
 
+  --Расчет расстояния между точками
+  function dist_between_points(p_a coordinate
+                              ,p_b coordinate) return number is
+  begin
+    return(sqrt(power(p_b.x - p_a.x, 2) + power(p_b.y - p_a.y, 2)));
+  end;
 --функция расчета растояния от точки до отрезка
   function dist_to_line(p_p  coordinate
                        ,p_p1 coordinate
