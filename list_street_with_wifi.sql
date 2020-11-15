@@ -16,4 +16,5 @@ get_min_dist as
         ,min(dist_to_p) over(partition by id_point) min_dist
     from calc_dist_to_p d)
 select id_street, name_street,id_point, name_point, radius, dist_to_p
-  from get_min_dist;
+  from get_min_dist
+  where min_dist=dist_to_p and radius > dist_to_p;
