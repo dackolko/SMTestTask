@@ -11,10 +11,34 @@ create or replace package utils_pkg is
                           ,p_x      number
                           ,p_y      number);
   procedure delete_point(p_id_point wifipoints.id_point%type);
+    function dist_to_line(p_p  coordinate
+                       ,p_p1 coordinate
+                       ,p_p2 coordinate) return number;
 end utils_pkg;
 /
 create or replace package body utils_pkg is
 
+--функция расчета растояния от точки до отрезка
+  function dist_to_line(p_p  coordinate
+                       ,p_p1 coordinate
+                       ,p_p2 coordinate) return number is
+    l_tmp number;
+  begin
+    l_tmp := ((p_p.x - p_p1.x) * (p_p2.x - p_p1.x) + (p_p.y - p_p1.y) * (p_p2.y - p_p1.y)) /
+             (power(p_p2.x - p_p1.x, 2) + power(p_p2.y - p_p1.y, 2));
+    l_tmp := case
+               when l_tmp < 0 then
+                0
+               when l_tmp > 1 then
+                1
+               else
+                l_tmp
+             end;
+    return sqrt(power((p_p1.x - p_p.x + (p_p2.x - p_p1.x) * l_tmp), 2) +
+                power((p_p1.y - p_p.y + (p_p2.y - p_p1.y) * l_tmp), 2));
+    --    return((p_p1.y - p_p2.y) * p_p.x + (p_p1.x - p_p2.x) * p_p.y + (p_p1.x * p_p2.y - p_p2.x * p_p1.y)) / dist_between_points(p_p1,
+    --                                                                                                                            p_p2);
+  end;
   --
   procedure add_street(p_name_street varchar2
                       ,p_first_x     number
