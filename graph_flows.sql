@@ -110,4 +110,6 @@ flows as
     join get_point_cross t2 on t2.from_street = t1.to_street and t1.from_street = t2.to_street
     )
 select from_street, to_street, p1x, p1y, p2x, p2y, utils_pkg.dist_between_points(p1x, p1y, p2x, p2y) cost_flow
-  from flows;
+,case when w.id_street is null then 0 else 1 end wifi
+  from flows f
+  left join (select distinct id_street from list_street_with_wifi) w on w.id_street = f.from_street;
