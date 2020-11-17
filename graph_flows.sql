@@ -101,17 +101,17 @@ get_point_cross as
 --Выбираем все точки, от точки пересечения до конечной и от конечной к точке пересечения - это и есть ребра графа
 select from_street
       ,to_street
-      ,x1
-      ,y1
-      ,x2
-      ,y2
-      ,utils_pkg.dist_between_points(x1, y1, x2, y2) d
+      ,x1 p1x
+      ,y1 p1y
+      ,x2 p2x
+      ,y2 p2y
+      ,utils_pkg.dist_between_points(x1, y1, x2, y2) cost_flow
       ,case
          when w.id_street is not null then
           1
          else
           0
-       end w
+       end wifi
   from (select from_street
               ,to_street
               ,x1
@@ -126,6 +126,14 @@ select from_street
               ,y_cross     y1
               ,x2
               ,y2
+          from get_point_cross
+        union all
+        select to_street   from_street
+              ,from_street to_street
+              ,x_cross     x1
+              ,y_cross     y1
+              ,x1 x2
+              ,y1 y2
           from get_point_cross)
   left join (select distinct id_street
                from list_street_with_wifi) w on from_street = w.id_street;
