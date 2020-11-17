@@ -16,10 +16,173 @@ create or replace package utils_pkg is
                        ,p_p2 coordinate) return number;
 	function dist_between_points(p_a coordinate
                               ,p_b coordinate) return number;
+	function dist_between_points(p_x1 number
+                              ,p_y1 number
+                              ,p_x2 number
+                              ,p_y2 number) return number;
+	procedure calc_way(p_a coordinate) ;
 end utils_pkg;
 /
 create or replace package body utils_pkg is
-
+--Расчет кратчайших путей
+procedure calc_way(p_a coordinate) is 
+  l_b coordinate;
+  type points_t is table of number;
+  l_t  points_t;
+  iter number := 0;
+  procedure initialize is
+  begin
+    insert into tmp_tbl_for_graph
+      (id
+      ,from_street
+      ,to_street
+      ,p1x
+      ,p1y
+      ,p2x
+      ,p2y
+      ,cost_flow
+      ,wifi)
+      select id
+            ,from_street
+            ,to_street
+            ,p1x
+            ,p1y
+            ,p2x
+            ,p2y
+            ,cost_flow
+            ,wifi
+        from (select rownum id
+                    ,from_street
+                    ,to_street
+                    ,p1x
+                    ,p1y
+                    ,p2x
+                    ,p2y
+                    ,cost_flow
+                    ,wifi
+                from graph_flows)
+       order by 4
+               ,5;
+    --Ищем ближайшую точку от А и B
+    insert into tmp_tbl_for_calc
+      (id
+      ,d
+      ,s
+      ,cons)
+      with tbl_flow as
+       (select id
+              ,utils_pkg.dist_between_points(p1x, p1y, l_a.x, l_a.y) dist_from_a
+          from tmp_tbl_for_graph t)
+      select id
+            ,0
+            ,-1
+            ,1
+        from tbl_flow a
+       where a.dist_from_a = (select min(dist_from_a)
+                                from tbl_flow);
+    with tbl_flow as
+     (select id
+            ,utils_pkg.dist_between_points(p2x, p2y, l_b.x, l_b.y) dist_from_b
+        from tmp_tbl_for_graph t)
+    select id
+      bulk collect
+      into l_t
+      from tbl_flow b
+     where b.dist_from_b = (select min(dist_from_b)
+                              from tbl_flow);
+  end;
+begin
+  initialize;
+  if l_s is empty
+  then
+    raise_application_error(-20000, 'Не найдена ближайшая точка к началбной');
+  end if;
+  if l_t is empty
+  then
+    raise_application_error(-20000, 'Не найдена ближайшая точка конечной');
+  end if;
+  --dbms_output.put_line(l_s || '->' || l_t);
+  --begin calc
+  insert into tmp_tbl_for_calc
+    (id
+    ,d
+    ,s
+    ,cons)
+    select pp.id
+          ,pp.cost_flow + t.d d
+          ,t.id
+          ,0
+      from tmp_tbl_for_calc t
+      join tmp_tbl_for_graph p on t.id = p.id
+      join tmp_tbl_for_graph pp on p.p2x = pp.p1x
+                               and p.p2y = pp.p1y;
+  --
+  loop
+    declare
+      l_tmp_id tmp_tbl_for_calc%rowtype;
+    begin
+      iter := iter + 1;
+      dbms_output.put_line('----------------' || iter || '--------------------');
+      exit when iter > 20;
+      for x in (select *
+                  from tmp_tbl_for_calc)
+      loop
+        dbms_output.put_line(x.id || '\' || x.d || '\' || x.s);
+      end loop;
+      select *
+        into l_tmp_id
+        from tmp_tbl_for_calc t
+       where t.cons = 0
+         and t.d = (select min(d)
+                      from tmp_tbl_for_calc t
+                     where cons = 0)
+         and rownum = 1;
+      --Устанавливаем постоянную метку
+      update tmp_tbl_for_calc t
+         set t.cons = 1
+       where t.id = l_tmp_id.id;
+      -- Обновляем расстояния
+      merge into tmp_tbl_for_calc t
+      using (select pp.id
+                   ,l_tmp_id.d   d
+                   ,l_tmp_id.s   s
+                   ,pp.cost_flow
+               from tmp_tbl_for_graph p
+               join tmp_tbl_for_graph pp on p.p2x = pp.p1x
+                                        and p.p2y = pp.p1y
+              where p.id = l_tmp_id.id) s
+      on (t.id = s.id)
+      when not matched then
+        insert
+          (id
+          ,d
+          ,s
+          ,cons)
+        values
+          (s.id
+          ,s.d
+          ,s.s
+          ,0)
+      when matched then
+        update
+           set t.d = s.d + s.cost_flow
+              ,t.s = s.s
+         where t.d > s.d + s.cost_flow;
+    exception
+      when no_data_found then
+        exit;
+    end;
+  end loop;
+end;
+ --Расчет расстояния между точками
+  function dist_between_points(p_x1 number
+                              ,p_y1 number
+                              ,p_x2 number
+                              ,p_y2 number) return number is
+  begin
+    return(sqrt(power(p_x2 - p_x1, 2) + power(p_y2 - p_y1, 2)));
+  end;
+  
   --Расчет расстояния между точками
   function dist_between_points(p_a coordinate
                               ,p_b coordinate) return number is

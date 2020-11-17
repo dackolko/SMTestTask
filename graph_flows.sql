@@ -97,17 +97,43 @@ get_point_cross as
                      t1.y_cross
                   end y_cross
     from calc_xy t1
-    left join calc_xy t2 on t1.from_street = t2.to_street) --TODO т.к. у нас не все правильно высчитывается- делаем костылем
-,
+    left join calc_xy t2 on t1.from_street = t2.to_street)
 --Выбираем все точки, от точки пересечения до конечной и от конечной к точке пересечения - это и есть ребра графа
-flows as
- (select t1.from_street, t1.to_street, t1.x1 p1x, t1.y1 p1y, t1.x_cross p2x, t1.y_cross p2y 
-    from get_point_cross t1
-    join get_point_cross t2 on t1.from_street = t2.to_street and t2.from_street = t1.to_street
-    union all
-    select t1.from_street, t1.to_street, t2.x_cross p1x, t2.y_cross p1y, t2.x1 p2x, t2.y1 p2y 
-    from get_point_cross t1
-    join get_point_cross t2 on t2.from_street = t1.to_street and t1.from_street = t2.to_street
-    )
-select from_street, to_street, p1x, p1y, p2x, p2y, utils_pkg.dist_between_points(p1x, p1y, p2x, p2y) cost_flow
-  from flows;
+select from_street
+      ,to_street
+      ,x1 p1x
+      ,y1 p1y
+      ,x2 p2x
+      ,y2 p2y
+      ,utils_pkg.dist_between_points(x1, y1, x2, y2) cost_flow
+      ,case
+         when w.id_street is not null then
+          1
+         else
+          0
+       end wifi
+  from (select from_street
+              ,to_street
+              ,x1
+              ,y1
+              ,x_cross     x2
+              ,y_cross     y2
+          from get_point_cross f
+        union all
+        select from_street
+              ,to_street
+              ,x_cross     x1
+              ,y_cross     y1
+              ,x2
+              ,y2
+          from get_point_cross
+        union all
+        select to_street   from_street
+              ,from_street to_street
+              ,x_cross     x1
+              ,y_cross     y1
+              ,x1 x2
+              ,y1 y2
+          from get_point_cross)
+  left join (select distinct id_street
+               from list_street_with_wifi) w on from_street = w.id_street;

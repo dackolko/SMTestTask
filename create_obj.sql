@@ -23,3 +23,11 @@ x number,
 y number,
 p coordinate
 );
+drop table tmp_tbl_for_graph;
+CREATE GLOBAL TEMPORARY TABLE tmp_tbl_for_graph (
+id number, from_street number, to_street number, p1x number, p1y number, p2x number, p2y number, cost_flow number
+,wifi number
+)
+ON COMMIT DELETE ROWS;
+drop table tmp_tbl_for_calc;
+CREATE GLOBAL TEMPORARY TABLE tmp_tbl_for_calc(id number, d number, s number, cons number)ON COMMIT DELETE ROWS;
