@@ -71,7 +71,7 @@ procedure calc_way(p_a coordinate) is
       ,cons)
       with tbl_flow as
        (select id
-              ,utils_pkg.dist_between_points(p1x, p1y, l_a.x, l_a.y) dist_from_a
+              ,utils_pkg.dist_between_points(p1x, p1y, p_a.x, p_a.y) dist_from_a
           from tmp_tbl_for_graph t)
       select id
             ,0
@@ -93,15 +93,6 @@ procedure calc_way(p_a coordinate) is
   end;
 begin
   initialize;
-  if l_s is empty
-  then
-    raise_application_error(-20000, 'Не найдена ближайшая точка к началбной');
-  end if;
-  if l_t is empty
-  then
-    raise_application_error(-20000, 'Не найдена ближайшая точка конечной');
-  end if;
-  --dbms_output.put_line(l_s || '->' || l_t);
   --begin calc
   insert into tmp_tbl_for_calc
     (id
