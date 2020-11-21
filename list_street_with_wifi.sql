@@ -1,4 +1,4 @@
-create or replace view list_street_with_wifi as 
+create or replace force view list_street_with_wifi as 
 with calc_dist_to_p as
  (select s.id_street
         ,p.id_point
