@@ -37,9 +37,9 @@ create or replace package body utils_pkg is
   begin
     l_koef := case p_wifi
                 when 0 then
-                 1.5
+                 1000
                 when 1 then
-                 0.5
+                 1
                 else
                  1
               end;
@@ -82,13 +82,11 @@ create or replace package body utils_pkg is
           from ways             tt
                ,tmp_tbl_for_calc t
          where tt.s = t.id)
-      select rownum num
-            ,t.p1x  from_x
+      select t.p1x  from_x
             ,t.p1y  from_y
             ,t.p2x  to_x
             ,t.p2y  to_y
             ,t.wifi
-            ,w.*
         from ways w
         join tmp_tbl_for_graph t on t.id = w.id
        where w.parent_id in (select parent_id
@@ -96,8 +94,7 @@ create or replace package body utils_pkg is
                               where d = (select min(d)
                                            from ways
                                           where s = -1))
-       order by parent_id
-               ,iter desc;
+       order by iter desc;
     return l_ret_val;
   end;
   --Расчет кратчайших путей
@@ -119,8 +116,8 @@ create or replace package body utils_pkg is
         ,cost_flow
         ,wifi)
         select id
-              ,from_street
-              ,to_street
+              ,null
+              ,null
               ,p1x
               ,p1y
               ,p2x
@@ -128,8 +125,6 @@ create or replace package body utils_pkg is
               ,cost_flow
               ,wifi
           from (select rownum id
-                      ,from_street
-                      ,to_street
                       ,p1x
                       ,p1y
                       ,p2x
