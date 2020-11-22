@@ -22,7 +22,7 @@ create or replace package utils_pkg is
                               ,p_y2 number) return number;
   procedure dijkstra(p_a coordinate);
   function get_optimal_way(p_a coordinate
-                          ,p_b coordinate) return sys_refcursor;
+                          ,p_b coordinate) return ways_tbl;
   function calc_cost(p_cost1 number
                     ,p_cost2 number
                     ,p_wifi  number := null) return number;
@@ -47,14 +47,16 @@ create or replace package body utils_pkg is
   end;
   -- Расчет оптимального пути
   function get_optimal_way(p_a coordinate
-                          ,p_b coordinate) return sys_refcursor is
-    l_ret_val sys_refcursor;
-  begin
-    dijkstra(p_a => p_a);
-    open l_ret_val for
+                          ,p_b coordinate) return ways_tbl is
+    function calc(lp_a coordinate
+                 ,lp_b coordinate) return ways_tbl is
+      l_tmp ways_tbl;
+      pragma autonomous_transaction;
+    begin
+      dijkstra(p_a => lp_a);
       with tbl_flow as
        (select t.*
-              ,utils_pkg.dist_between_points(p2x, p2y, p_b.x, p_b.y) dist_from_b
+              ,utils_pkg.dist_between_points(p2x, p2y, lp_b.x, lp_b.y) dist_from_b
           from tmp_tbl_for_graph t),
       ways(id,
       d,
@@ -82,11 +84,9 @@ create or replace package body utils_pkg is
           from ways             tt
                ,tmp_tbl_for_calc t
          where tt.s = t.id)
-      select t.p1x  from_x
-            ,t.p1y  from_y
-            ,t.p2x  to_x
-            ,t.p2y  to_y
-            ,t.wifi
+      select ways_t(from_x => t.p1x, from_y => t.p1y, to_x => t.p2x, to_y => t.p2y, wifi => t.wifi)
+        bulk collect
+        into l_tmp
         from ways w
         join tmp_tbl_for_graph t on t.id = w.id
        where w.parent_id in (select parent_id
@@ -95,7 +95,12 @@ create or replace package body utils_pkg is
                                            from ways
                                           where s = -1))
        order by iter desc;
-    return l_ret_val;
+      commit;
+      return l_tmp;
+    end;
+  begin
+  
+    return calc(p_a, p_b);
   end;
   --Расчет кратчайших путей
   procedure dijkstra(p_a coordinate) is
